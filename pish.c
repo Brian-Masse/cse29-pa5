@@ -81,7 +81,16 @@ void parse_command(char *command, struct pish_arg *arg)
  */
 void run(struct pish_arg *arg)
 {
-    // TODO
+    if ( arg->argc == 0 ) {
+		//TODO: return an empty command error
+		return;
+	}
+
+	char* command = arg->argv[0];
+	
+	if ( strcmp( command, "exit" )) {
+		printf("this is running");
+	}
 }
 
 /*
@@ -95,9 +104,9 @@ int pish(FILE *fp)
     struct pish_arg arg;
 
 	while(fgets( buf, sizeof(buf), stdin ) ) {
-		printf("this is running!\n");
 		
 		parse_command( buf, &arg );
+		run( &arg );
 	
 	}
 
