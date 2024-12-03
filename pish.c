@@ -46,9 +46,28 @@ void usage_error(void)
  */
 void parse_command(char *command, struct pish_arg *arg)
 {
-    // TODO
-    // 1. Clear out the arg struct
-    // 2. Parse the `command` buffer and update arg->argc & arg->argv.
+	char* delim = " \t\n|";
+	char* command_token = strtok( command, delim );
+
+	if ( command_token == NULL ) {
+		//TODO: return an empty command error
+		return; 
+	}
+
+	//TODO: add a dynamic array list system
+	int argc = 0;
+	char* commands[64];
+
+	while( command_token ) { 
+		commands[argc] = command_token;	
+		argc += 1;
+		command_token = strtok( NULL, delim );
+	 }
+	
+	commands[argc] = NULL;
+
+	arg->argc = argc;
+	arg->argv = commands;
 }
 
 /*
@@ -75,17 +94,12 @@ int pish(FILE *fp)
     char buf[1024];
     struct pish_arg arg;
 
-    /* TODO:
-     * Figure out how to read input and run commands on a loop.
-     * It should look something like:
-
-            while (prompt() && [TODO] {
-                parse_command(buf, &arg);
-                run(&arg);
-            }
-
-     * The [TODO] is where you read a line from `fp` into `buf`.
-     */
+	while(fgets( buf, sizeof(buf), stdin ) ) {
+		printf("this is running!\n");
+		
+		parse_command( buf, &arg );
+	
+	}
 
     return 0;
 }
