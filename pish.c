@@ -9,15 +9,18 @@
 
 #include "pish.h"
 
+
 /*
  * Batch mode flag. If set to 0, the shell reads from stdin. If set to 1,
  * the shell reads from a file from argv[1].
  */
+// MARK: script_mode
 static int script_mode = 0;
 
 /*
  * Prints a prompt IF NOT in batch mode (see script_mode global flag),
  */ 
+// MARK: Prompt
 int prompt(void)
 {
     static const char prompt[] = {0xe2, 0x96, 0xb6, ' ', ' ', '\0'};
@@ -31,6 +34,7 @@ int prompt(void)
 /*
  * Print usage error for built-in commands.
  */
+// MARK: Usage Error
 void usage_error(void)
 {
     fprintf(stderr, "pish: Usage error\n");
@@ -44,6 +48,7 @@ void usage_error(void)
  * @param command   A char buffer containing the input command
  * @param arg       Broken down args will be stored here.
  */
+// MARK: parse_command
 void parse_command(char *command, struct pish_arg *arg)
 {
 	char* delim = " \t\n|";
@@ -54,20 +59,22 @@ void parse_command(char *command, struct pish_arg *arg)
 		return; 
 	}
 
-	//TODO: add a dynamic array list system
 	int argc = 0;
-	char* commands[64];
 
 	while( command_token ) { 
-		commands[argc] = command_token;	
+		arg->argv[argc] = command_token;	
 		argc += 1;
 		command_token = strtok( NULL, delim );
 	 }
 	
-	commands[argc] = NULL;
-
+	arg->argv[argc] = NULL;
 	arg->argc = argc;
-	arg->argv = commands;
+}
+
+// MARK: run_exit
+// This is gaurenteed to have at least one argument
+void run_exit(char ** argv) {
+	exit(EXIT_SUCCESS);
 }
 
 /*
@@ -79,6 +86,7 @@ void parse_command(char *command, struct pish_arg *arg)
  * If the command is empty, do nothing.
  * If NOT in batch mode, add the command to history file.
  */
+// MARK: run_command
 void run(struct pish_arg *arg)
 {
     if ( arg->argc == 0 ) {
@@ -87,9 +95,29 @@ void run(struct pish_arg *arg)
 	}
 
 	char* command = arg->argv[0];
-	
-	if ( strcmp( command, "exit" )) {
-		printf("this is running");
+
+	if ( strcmp( command, "exit" ) == 0 ) {
+		exit(EXIT_SUCCESS);
+	} else if ( strcmp( command, "cd" ) == 0 ) {
+
+		int result = chdir(arg->argv[1]);
+		if ( result != 0) {
+			// TODO: return a failed cd command
+			printf("cd failed");
+		}
+	} else {
+
+		int status;
+
+		pid_t pid = fork();
+
+		if ( pid == 0 ) {
+			
+			execvp( arg->argv[0], arg->argv );
+
+		} else {
+			waitpid( pid, &status, 0 );
+		}
 	}
 }
 
@@ -97,6 +125,7 @@ void run(struct pish_arg *arg)
  * The main loop. Continuously reads input from a FILE pointer
  * (can be stdin or an actual file) until `exit` or EOF.
  */
+// MARK: PISH
 int pish(FILE *fp)
 {
     // assume input does not exceed buffer size
@@ -113,6 +142,7 @@ int pish(FILE *fp)
     return 0;
 }
 
+// MARK: main
 int main(int argc, char *argv[])
 {
     FILE *fp;
