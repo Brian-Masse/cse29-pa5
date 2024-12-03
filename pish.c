@@ -9,6 +9,12 @@
 
 #include "pish.h"
 
+// MARK: Global Variables
+const char* ERROR_FOPEN_FAILURE = "open";
+const char* ERROR_CD_FAILURE = "cd";
+const char* ERROR_EXECVP_FAILURE = "pish";
+const char* ERROR_FORK_FAILURE = "fork";
+
 
 /*
  * Batch mode flag. If set to 0, the shell reads from stdin. If set to 1,
@@ -54,10 +60,7 @@ void parse_command(char *command, struct pish_arg *arg)
 	char* delim = " \t\n|";
 	char* command_token = strtok( command, delim );
 
-	if ( command_token == NULL ) {
-		//TODO: return an empty command error
-		return; 
-	}
+	if ( command_token == NULL ) { return; }
 
 	int argc = 0;
 
@@ -73,8 +76,48 @@ void parse_command(char *command, struct pish_arg *arg)
 
 // MARK: run_exit
 // This is gaurenteed to have at least one argument
-void run_exit(char ** argv) {
+void run_exit(struct pish_arg* arg) {
 	exit(EXIT_SUCCESS);
+}
+
+// MARK: run_cd
+// This is gaurenteed to have at least one argument
+void run_cd(struct pish_arg* arg) {
+	if ( arg->argc != 2 ) { 
+		usage_error();
+		return;
+	}
+
+	int result = chdir(arg->argv[1]);
+	if ( result != 0) {
+		perror( ERROR_CD_FAILURE );
+		return;
+	}
+}
+
+// MARK: run_general_command
+// This is gaurenteed to have at least one argument
+// This is for any non-built in shell function
+void run_general_command( struct pish_arg* arg ) {
+	int child_status;
+
+	pid_t pid = fork();
+	if (pid == -1) {
+		perror( ERROR_FORK_FAILURE );
+		return;
+	}
+
+	if ( pid == 0 ) {		
+		// as the child, execute the command as a new program
+		execvp( arg->argv[0], arg->argv );
+		perror( ERROR_EXECVP_FAILURE );
+		return;
+
+	} else {
+		// as the parent, wait for the child to finish executing
+		waitpid( pid, &child_status, 0 );
+		return;
+	}
 }
 
 /*
@@ -89,35 +132,16 @@ void run_exit(char ** argv) {
 // MARK: run_command
 void run(struct pish_arg *arg)
 {
-    if ( arg->argc == 0 ) {
-		//TODO: return an empty command error
-		return;
-	}
+    if ( arg->argc == 0 ) { return; }
 
 	char* command = arg->argv[0];
 
 	if ( strcmp( command, "exit" ) == 0 ) {
-		exit(EXIT_SUCCESS);
+		run_exit(arg);
 	} else if ( strcmp( command, "cd" ) == 0 ) {
-
-		int result = chdir(arg->argv[1]);
-		if ( result != 0) {
-			// TODO: return a failed cd command
-			printf("cd failed");
-		}
+		run_cd(arg);
 	} else {
-
-		int status;
-
-		pid_t pid = fork();
-
-		if ( pid == 0 ) {
-			
-			execvp( arg->argv[0], arg->argv );
-
-		} else {
-			waitpid( pid, &status, 0 );
-		}
+		run_general_command(arg);
 	}
 }
 
@@ -132,11 +156,12 @@ int pish(FILE *fp)
     char buf[1024];
     struct pish_arg arg;
 
+	prompt();
+
 	while(fgets( buf, sizeof(buf), stdin ) ) {
-		
 		parse_command( buf, &arg );
 		run( &arg );
-	
+		prompt();
 	}
 
     return 0;
