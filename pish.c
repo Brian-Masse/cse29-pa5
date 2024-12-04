@@ -47,14 +47,16 @@ void usage_error(void) {
 }
 
 // MARK: Exit
-void exit_successfully() {
+void exit_successfully(int should_exit) {
 	fclose(history_file);
 	fclose(fp);
-	exit(EXIT_SUCCESS);
+
+	if (should_exit) { exit(EXIT_SUCCESS); }
 }
 
 void exit_failure() {
 	fclose(history_file);
+
 	exit(EXIT_FAILURE);
 }
 
@@ -150,7 +152,7 @@ void run(struct pish_arg *arg)
 	char* command = arg->argv[0];
 
 	if ( strcmp(command, "exit") == 0 ) {
-		exit(EXIT_SUCCESS);
+		exit_successfully(1);
 	} else if ( strcmp(command, "cd") == 0 ) {
 		run_cd(arg);
 	} else if ( strcmp(command, "history") == 0 ) {
@@ -214,5 +216,6 @@ int main(int argc, char *argv[]) {
 	}
 
     pish(fp);
-	exit_successfully();
+	exit_successfully(0);
+	return EXIT_SUCCESS;
 }
