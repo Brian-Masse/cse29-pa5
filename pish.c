@@ -15,6 +15,7 @@ const char* ERROR_CD_FAILURE = "cd";
 const char* ERROR_EXECVP_FAILURE = "pish";
 const char* ERROR_FORK_FAILURE = "fork";
 
+FILE *fp = NULL;
 
 /*
  * Batch mode flag. If set to 0, the shell reads from stdin. If set to 1,
@@ -47,9 +48,14 @@ void usage_error(void) {
 
 // MARK: Exit
 void exit_successfully() {
-	fclose( history_file );
-	
+	fclose(history_file);
+	fclose(fp);
 	exit(EXIT_SUCCESS);
+}
+
+void exit_failure() {
+	fclose(history_file);
+	exit(EXIT_FAILURE);
 }
 
 /*
@@ -170,7 +176,7 @@ int pish(FILE *fp)
 
 	prompt();
 
-	while(fgets( buf, sizeof(buf), stdin ) ) {
+	while(fgets( buf, sizeof(buf), script_mode ? fp : stdin ) ) {
 		parse_command( buf, &arg );
 
 		if ( arg.argc != 0 ) { 
@@ -188,24 +194,31 @@ int pish(FILE *fp)
     return 0;
 }
 
-// MARK: main
-int main(int argc, char *argv[])
-{
-    FILE *fp;
+// MARK: Open file
+void open_file( char* path ) {
+	fp = fopen( path, "r" );
 
-    /* TODO: 
-     * Set up fp to either stdin or an open file.
-     * - If the shell is run without argument (argc == 1), use stdin.
-     * - If the shell is run with 1 argument (argc == 2), use that argument
-     *   as the file path to read from.
-     * - If the shell is run with 2+ arguments, call usage_error() and exit.
-     */
+	if (fp == NULL) {
+        perror( ERROR_FOPEN_FAILURE );
+		exit_failure();
+    }
+}
+
+// MARK: main
+int main(int argc, char *argv[]) {
+
+	if (argc == 2) {
+		open_file( argv[1] );
+		script_mode = 1;
+
+	} else if (argc == 1) {
+		script_mode = 0;
+
+	} else {
+		usage_error();
+		exit_failure();
+	}
 
     pish(fp);
-
-    /* TODO:
-     * close fp if it is not stdin.
-     */
-
 	exit_successfully();
 }
