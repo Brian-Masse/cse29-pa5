@@ -85,12 +85,6 @@ void parse_command(char *command, struct pish_arg *arg)
 	arg->argc = argc;
 }
 
-// MARK: run_exit
-// This is gaurenteed to have at least one argument
-void run_exit(struct pish_arg* arg) {
-	exit(EXIT_SUCCESS);
-}
-
 // MARK: run_cd
 // This is gaurenteed to have at least one argument
 void run_cd(struct pish_arg* arg) {
@@ -156,7 +150,7 @@ void run(struct pish_arg *arg)
 	char* command = arg->argv[0];
 
 	if ( strcmp(command, "exit") == 0 ) {
-		run_exit(arg);
+		exit(EXIT_SUCCESS);
 	} else if ( strcmp(command, "cd") == 0 ) {
 		run_cd(arg);
 	} else if ( strcmp(command, "history") == 0 ) {
