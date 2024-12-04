@@ -3,6 +3,8 @@
 
 #define MAX_ARGC 64
 
+extern FILE *history_file;
+
 /*
  * Each input command will be parsed into this struct.
  * E.g. 

@@ -27,8 +27,7 @@ static int script_mode = 0;
  * Prints a prompt IF NOT in batch mode (see script_mode global flag),
  */ 
 // MARK: Prompt
-int prompt(void)
-{
+int prompt(void) {
     static const char prompt[] = {0xe2, 0x96, 0xb6, ' ', ' ', '\0'};
     if (!script_mode) {
         printf("%s", prompt);
@@ -41,10 +40,16 @@ int prompt(void)
  * Print usage error for built-in commands.
  */
 // MARK: Usage Error
-void usage_error(void)
-{
+void usage_error(void) {
     fprintf(stderr, "pish: Usage error\n");
     fflush(stdout);
+}
+
+// MARK: Exit
+void exit_successfully() {
+	fclose( history_file );
+	
+	exit(EXIT_SUCCESS);
 }
 
 /*
@@ -95,6 +100,16 @@ void run_cd(struct pish_arg* arg) {
 	}
 }
 
+// MARK: run_history
+void run_history( struct pish_arg* arg ) {
+	if (arg->argc != 1) {
+		usage_error();
+		return;
+	}
+
+	print_history();
+}
+
 // MARK: run_general_command
 // This is gaurenteed to have at least one argument
 // This is for any non-built in shell function
@@ -132,23 +147,20 @@ void run_general_command( struct pish_arg* arg ) {
 // MARK: run_command
 void run(struct pish_arg *arg)
 {
-    if ( arg->argc == 0 ) { return; }
-
 	char* command = arg->argv[0];
 
-	if ( strcmp( command, "exit" ) == 0 ) {
+	if ( strcmp(command, "exit") == 0 ) {
 		run_exit(arg);
-	} else if ( strcmp( command, "cd" ) == 0 ) {
+	} else if ( strcmp(command, "cd") == 0 ) {
 		run_cd(arg);
+	} else if ( strcmp(command, "history") == 0 ) {
+		run_history(arg);
 	} else {
 		run_general_command(arg);
 	}
 }
 
-/*
- * The main loop. Continuously reads input from a FILE pointer
- * (can be stdin or an actual file) until `exit` or EOF.
- */
+
 // MARK: PISH
 int pish(FILE *fp)
 {
@@ -160,8 +172,17 @@ int pish(FILE *fp)
 
 	while(fgets( buf, sizeof(buf), stdin ) ) {
 		parse_command( buf, &arg );
-		run( &arg );
+
+		if ( arg.argc != 0 ) { 
+			add_history( &arg );
+			run( &arg );
+		}
+
 		prompt();
+
+		//reset the arg struct
+		arg.argc = 0;
+		arg.argv[0] = NULL;
 	}
 
     return 0;
@@ -186,5 +207,5 @@ int main(int argc, char *argv[])
      * close fp if it is not stdin.
      */
 
-    return EXIT_SUCCESS;
+	exit_successfully();
 }
